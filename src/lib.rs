@@ -68,12 +68,12 @@ use std::sync::Arc;
 // use num::complex::Complex;
 // use num::traits::{Float, Signed, Zero};
 
-extern crate apodize;
+pub extern crate apodize;
 
-extern crate strider;
+pub extern crate strider;
 use strider::{SliceRing, SliceRingImpl};
 
-extern crate realfft;
+pub extern crate realfft;
 use realfft::{RealFftPlanner, RealToComplex, ComplexToReal, FftNum, num_complex::*, num_traits::*};
 
 /// returns `0` if `log10(value).is_negative()`.
