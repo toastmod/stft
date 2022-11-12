@@ -59,20 +59,22 @@ fn main() {
 ```
 */
 
+pub mod processor;
+
 use std::str::FromStr;
 use std::sync::Arc;
 
-extern crate num;
-use num::complex::Complex;
-use num::traits::{Float, Signed, Zero};
+// extern crate num;
+// use num::complex::Complex;
+// use num::traits::{Float, Signed, Zero};
 
 extern crate apodize;
 
 extern crate strider;
 use strider::{SliceRing, SliceRingImpl};
 
-extern crate rustfft;
-use rustfft::{FFT,FFTnum,FFTplanner};
+extern crate realfft;
+use realfft::{RealFftPlanner, RealToComplex, ComplexToReal, FftNum, num_complex::*, num_traits::*};
 
 /// returns `0` if `log10(value).is_negative()`.
 /// otherwise returns `log10(value)`.
@@ -142,21 +144,21 @@ impl WindowType {
 }
 
 pub struct STFT<T>
-    where T: FFTnum + FromF64 + num::Float
+    where T: FftNum + FromF64 + Float
 {
     pub window_size: usize,
     pub step_size: usize,
-    pub fft: Arc<FFT<T>>,
+    pub fft: Arc<dyn RealToComplex<T>>,
     pub window: Option<Vec<T>>,
     /// internal ringbuffer used to store samples
     pub sample_ring: SliceRingImpl<T>,
     pub real_input: Vec<T>,
-    pub complex_input: Vec<Complex<T>>,
+    // pub complex_input: Vec<Complex<T>>,
     pub complex_output: Vec<Complex<T>>,
 }
 
 impl<T> STFT<T>
-    where T: FFTnum + FromF64 + num::Float
+    where T: FftNum + FromF64 + Float
 {
     pub fn window_type_to_window_vec(window_type: WindowType,
                                      window_size: usize)
@@ -185,22 +187,24 @@ impl<T> STFT<T>
         // step_size > 0
         assert!(step_size <= window_size);
         let inverse = false;
-        let mut planner = FFTplanner::new(inverse);
+        let mut planner = RealFftPlanner::<T>::new();
+        
+        let mut fft = planner.plan_fft_forward(window_size);
+        let real_input = fft.make_input_vec();
+        let complex_output = fft.make_output_vec();
+        
         STFT {
+            fft,
             window_size: window_size,
             step_size: step_size,
-            fft: planner.plan_fft(window_size),
             sample_ring: SliceRingImpl::new(),
+            real_input: vec![],
             window: window,
-            real_input: std::iter::repeat(T::zero())
-                            .take(window_size)
-                            .collect(),
-            complex_input: std::iter::repeat(Complex::<T>::zero())
-                               .take(window_size)
-                               .collect(),
-            complex_output: std::iter::repeat(Complex::<T>::zero())
-                                .take(window_size)
-                                .collect(),
+
+            // complex_input: std::iter::repeat(Complex::<T>::zero())
+            //                    .take(window_size)
+            //                    .collect(),
+            complex_output: vec![]
         }
     }
 
@@ -236,13 +240,13 @@ impl<T> STFT<T>
             }
         }
 
-        // copy windowed real_input as real parts into complex_input
-        for (dst, src) in self.complex_input.iter_mut().zip(self.real_input.iter()) {
-            dst.re = src.clone();
-        }
+        // // copy windowed real_input as real parts into complex_input
+        // for (dst, src) in self.complex_input.iter_mut().zip(self.real_input.iter()) {
+        //     dst.re = src.clone();
+        // }
 
         // compute fft
-        self.fft.process(&mut self.complex_input, &mut self.complex_output);
+        self.fft.process(&mut self.real_input, &mut self.complex_output);
     }
 
     /// # Panics
@@ -287,6 +291,7 @@ impl<T> STFT<T>
     pub fn move_to_next_column(&mut self) {
         self.sample_ring.drop_many_front(self.step_size);
     }
+
 }
 
 pub trait FromF64 {
