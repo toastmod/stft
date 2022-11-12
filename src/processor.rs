@@ -31,9 +31,9 @@ impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
             step_size,
             stft: STFT::new(window_type, window_size, step_size),
             ifft,
-            zero_dummy: vec![],
-            processor_output: vec![],
-            transfer_output: vec![],
+            zero_dummy,
+            processor_output,
+            transfer_output,
             overflow_remaining: 0..0,
         }
     }
