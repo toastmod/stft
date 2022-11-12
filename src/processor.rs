@@ -47,7 +47,7 @@ impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
         // dump remaining overflow from transfer_output
         let mut ip = 0usize;
         for ov_i in self.overflow_remaining.clone() {
-            chunk[ip] = self.transfer_output[ov_i];
+            chunk[ip] += self.transfer_output[ov_i];
             ip += 1;
         }
 
