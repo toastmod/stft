@@ -38,7 +38,7 @@ impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
         }
     }
 
-    pub fn process(&mut self, chunk: &mut [T], proc_func: &mut dyn FnMut(&mut[Complex<T>], &mut[Complex<T>]) -> ()) {
+    pub fn process(&mut self, chunk: &mut [T], proc_func: &mut dyn FnMut(&mut[Complex<T>], &mut[Complex<T>], usize) -> ()) {
         self.stft.append_samples(chunk);
 
         // clear chunk
@@ -59,7 +59,7 @@ impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
             self.processor_output.copy_from_slice(self.zero_dummy.as_slice());
 
             // Process complex output.
-            proc_func(self.stft.complex_output.as_mut_slice(), self.processor_output.as_mut_slice());
+            proc_func(self.stft.complex_output.as_mut_slice(), self.processor_output.as_mut_slice(), self.window_size);
 
             // Apply IFFT on processor output, write into transfer output.
             self.ifft.process(self.processor_output.as_mut_slice(), self.transfer_output.as_mut_slice());
