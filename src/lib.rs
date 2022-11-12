@@ -198,13 +198,13 @@ impl<T> STFT<T>
             window_size: window_size,
             step_size: step_size,
             sample_ring: SliceRingImpl::new(),
-            real_input: vec![],
+            real_input,
             window: window,
 
             // complex_input: std::iter::repeat(Complex::<T>::zero())
             //                    .take(window_size)
             //                    .collect(),
-            complex_output: vec![]
+            complex_output,
         }
     }
 
