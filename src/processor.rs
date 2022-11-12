@@ -2,12 +2,12 @@ use realfft::num_traits::{Float, Signed, Zero};
 use realfft::{RealFftPlanner, RealToComplex, ComplexToReal, FftNum, num_complex::*, num_traits::*};
 use std::sync::Arc;
 use ::{STFT, WindowType};
-use std::ops::Range;
+use std::ops::{Range, AddAssign};
 use FromF64;
 
 
 /// An input/output style audio buffer processor using FFT and then IFFT.
-pub struct STFTProcessor<T: Float + Signed + Zero + FftNum + FromF64> {
+pub struct STFTProcessor<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> {
     window_size: usize,
     step_size: usize,
     stft: STFT<T>,
@@ -18,7 +18,7 @@ pub struct STFTProcessor<T: Float + Signed + Zero + FftNum + FromF64> {
     overflow_remaining: Range<usize>,
 }
 
-impl<T: Float + Signed + Zero + FftNum + FromF64> STFTProcessor<T> {
+impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
     pub fn new(window_type: WindowType, window_size: usize, step_size: usize) -> Self {
         let mut inverse_planner = RealFftPlanner::<T>::new();
         let mut ifft = inverse_planner.plan_fft_inverse(window_size);
@@ -45,10 +45,10 @@ impl<T: Float + Signed + Zero + FftNum + FromF64> STFTProcessor<T> {
         chunk.fill(T::zero());
 
         // dump remaining overflow from transfer_output
-        let mut i = 0usize;
+        let mut ip = 0usize;
         for ov_i in self.overflow_remaining.clone() {
-            chunk[i] = self.transfer_output[ov_i];
-            i += 1;
+            chunk[ip] = self.transfer_output[ov_i];
+            ip += 1;
         }
 
         let mut chunk_cursor = 0usize;
@@ -74,7 +74,9 @@ impl<T: Float + Signed + Zero + FftNum + FromF64> STFTProcessor<T> {
 
             }else{
                 // output window to chunk
-                chunk[chunk_cursor..chunk_cursor+self.window_size].copy_from_slice(self.transfer_output.as_slice());
+                for i in chunk_cursor..chunk_cursor+self.window_size {
+                    chunk[i] += self.transfer_output[i-chunk_cursor];
+                }
                 chunk_cursor += self.step_size;
 
             }
