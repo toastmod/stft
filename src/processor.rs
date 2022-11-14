@@ -81,6 +81,9 @@ impl<T: Float + Signed + Zero + FftNum + FromF64 + AddAssign> STFTProcessor<T> {
 
             }
 
+            // Drop `step_size` samples from internal ringbuffer.
+            self.stft.move_to_next_column();
+
         }
     }
 
